@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "多模态桥接",
+    "description": "把图片、语音、视频任务转交给你自行配置的第三方接口，让纯文本对话模型也能处理本地图片。在侧边栏「插件」面板里点开本插件，页面中部即是用表单填写的接口地址、密钥与视觉/语音/视频模型名，保存后插件自动重载，工具随配置出现。提供 media_vision、media_speech、media_video、media_status；每次调用只发送你的提示词与显式引用的文件。",
+    "detail": "docs/DETAIL.zh.md"
+  }
+}

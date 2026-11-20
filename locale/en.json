@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Media bridge",
+    "description": "Forwards image, audio, and video work to a third-party endpoint you configure, so a text-only chat model can still act on a local image. Open this plugin's page in the sidebar Plugins panel to fill the endpoint, credential, and model fields in a form; saving reloads the plugin and its tools follow the new values. Adds media_vision, media_speech, media_video, and media_status; each call sends only your prompt and the files you reference.",
+    "detail": "docs/DETAIL.md"
+  }
+}

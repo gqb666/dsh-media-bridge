@@ -1,0 +1,4 @@
+- insert:
+    - id: media-bridge
+      name: 'dsh-media-bridge'
+      config: {}
