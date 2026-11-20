@@ -13,9 +13,9 @@ window.__ModuleLoader__.load({
     const CONFIG_PATH = '/api/media-bridge'
 
     const TEXT_FIELDS = [
-      { path: 'baseUrl', label: '接口地址 Base URL', placeholder: 'https://api.example.com/v1', hint: 'OpenAI 兼容根路径，需含 /v1' },
-      { path: 'apiKey', label: 'API Key', secret: true, hint: '留空则读取下面的环境变量' },
-      { path: 'apiKeyEnv', label: 'API Key 环境变量', placeholder: 'MEDIA_BRIDGE_API_KEY' },
+      { path: 'baseUrl', label: '默认 Base URL', placeholder: 'https://api.example.com/v1', hint: 'OpenAI 兼容根路径，需含 /v1；各组未单独填写时使用' },
+      { path: 'apiKey', label: '默认 API Key', secret: true, hint: '各组未单独填写时使用；不同厂家请在下方分组里分别填' },
+      { path: 'apiKeyEnv', label: '默认 Key 环境变量', placeholder: 'MEDIA_BRIDGE_API_KEY' },
       { path: 'outputDir', label: '输出目录', placeholder: '选择一个目录给生成结果', hint: '音频与视频保存到这里' },
     ]
 
@@ -25,6 +25,8 @@ window.__ModuleLoader__.load({
         hint: '纯文本模型看图时调用；三类服务可以分别指向不同网关',
         fields: [
           { path: 'vision.baseUrl', label: '接口地址', placeholder: 'https://api.example.com/v1' },
+          { path: 'vision.apiKey', label: 'API Key', secret: true, hint: '留空则用上面的默认密钥或下面的环境变量' },
+          { path: 'vision.apiKeyEnv', label: 'API Key 环境变量', placeholder: 'VISION_API_KEY' },
           { path: 'vision.model', label: '视觉模型', placeholder: 'Qwen2.5-VL-72B-Instruct' },
           { path: 'vision.maxTokens', label: '回答长度上限', type: 'number', placeholder: '1024' },
         ],
@@ -34,6 +36,8 @@ window.__ModuleLoader__.load({
         hint: '识别与合成可分别填不同的模型',
         fields: [
           { path: 'speech.baseUrl', label: '接口地址', placeholder: '留空则用上面的 Base URL' },
+          { path: 'speech.apiKey', label: 'API Key', secret: true, hint: '换厂家时在这里填该厂家的密钥' },
+          { path: 'speech.apiKeyEnv', label: 'API Key 环境变量', placeholder: 'SPEECH_API_KEY' },
           { path: 'speech.model', label: '识别模型', placeholder: 'SenseVoice' },
           { path: 'speech.ttsModel', label: '合成模型', placeholder: 'CosyVoice' },
           { path: 'speech.voice', label: '音色', placeholder: 'alloy' },
@@ -45,6 +49,8 @@ window.__ModuleLoader__.load({
         hint: '生成与编辑共用同一模型；任务按轮询推进',
         fields: [
           { path: 'video.baseUrl', label: '接口地址', placeholder: 'https://api.example.com/v1' },
+          { path: 'video.apiKey', label: 'API Key', secret: true, hint: '视频厂家与视觉不同时填这里' },
+          { path: 'video.apiKeyEnv', label: 'API Key 环境变量', placeholder: 'VIDEO_API_KEY' },
           { path: 'video.model', label: '视频模型', placeholder: 'doubao-seedance-2.0' },
           { path: 'video.style', label: '接口形态', placeholder: 'openai 或 volc', hint: 'volc = 火山方舟 /contents/generations/tasks 形态；openai = /videos 形态' },
           { path: 'video.pollIntervalMs', label: '轮询间隔 (ms)', type: 'number', placeholder: '5000' },
@@ -91,9 +97,17 @@ window.__ModuleLoader__.load({
         apiKey: state.apiKey,
         apiKeyEnv: state.apiKeyEnv,
         outputDir: state.outputDir,
-        vision: { baseUrl: state['vision.baseUrl'], model: state['vision.model'], maxTokens: number('vision.maxTokens') },
+        vision: {
+          baseUrl: state['vision.baseUrl'],
+          apiKey: state['vision.apiKey'],
+          apiKeyEnv: state['vision.apiKeyEnv'],
+          model: state['vision.model'],
+          maxTokens: number('vision.maxTokens'),
+        },
         speech: {
           baseUrl: state['speech.baseUrl'],
+          apiKey: state['speech.apiKey'],
+          apiKeyEnv: state['speech.apiKeyEnv'],
           model: state['speech.model'],
           ttsModel: state['speech.ttsModel'],
           voice: state['speech.voice'],
@@ -101,7 +115,10 @@ window.__ModuleLoader__.load({
         },
         video: {
           baseUrl: state['video.baseUrl'],
+          apiKey: state['video.apiKey'],
+          apiKeyEnv: state['video.apiKeyEnv'],
           model: state['video.model'],
+          style: state['video.style'],
           pollIntervalMs: number('video.pollIntervalMs'),
           timeoutMs: number('video.timeoutMs'),
         },
@@ -123,6 +140,11 @@ window.__ModuleLoader__.load({
       } catch {
         return value
       }
+    }
+
+    /** Whether one capability resolved a credential, own or shared. */
+    function keyTag(effective, capability) {
+      return effective?.keys?.[capability] === true ? '密钥就绪' : '无密钥'
     }
 
     /** POST one action, returning the parsed answer or a transport error. */
@@ -253,13 +275,16 @@ window.__ModuleLoader__.load({
           h('span', { className: 'mb-pill', 'data-on': String(effective?.hasApiKey === true) },
             effective?.hasApiKey === true ? '密钥已就绪' : '未提供密钥'),
           effective?.vision
-            ? h('span', { className: 'mb-pill', 'data-on': 'true' }, `视觉 ${effective.vision} @ ${hostOf(effective?.hosts?.vision)}`)
+            ? h('span', { className: 'mb-pill', 'data-on': 'true' },
+              `视觉 ${effective.vision} @ ${hostOf(effective?.hosts?.vision)} · ${keyTag(effective, 'vision')}`)
             : null,
           effective?.speech
-            ? h('span', { className: 'mb-pill', 'data-on': 'true' }, `语音 ${effective.speech} @ ${hostOf(effective?.hosts?.speech)}`)
+            ? h('span', { className: 'mb-pill', 'data-on': 'true' },
+              `语音 ${effective.speech} @ ${hostOf(effective?.hosts?.speech)} · ${keyTag(effective, 'speech')}`)
             : null,
           effective?.video
-            ? h('span', { className: 'mb-pill', 'data-on': 'true' }, `视频 ${effective.video} @ ${hostOf(effective?.hosts?.video)}`)
+            ? h('span', { className: 'mb-pill', 'data-on': 'true' },
+              `视频 ${effective.video} @ ${hostOf(effective?.hosts?.video)} · ${keyTag(effective, 'video')}`)
             : null,
         ),
         h('div', { className: 'mb-group' }, TEXT_FIELDS.map(textInput)),

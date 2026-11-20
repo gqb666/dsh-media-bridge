@@ -30,17 +30,19 @@ pnpm add git+https://github.com/gqb666/dsh-media-bridge.git
 
 | 字段 | 说明 |
 |---|---|
-| 接口地址 Base URL | OpenAI 兼容根路径，需含版本段，如 `https://api.example.com/v1` |
-| API Key | 与「API Key 环境变量」二选一；填了 key 就优先用它 |
-| API Key 环境变量 | 例如 `MEDIA_BRIDGE_API_KEY`，适合不想把密钥写进配置的场景 |
+| 默认 Base URL | OpenAI 兼容根路径，需含版本段，如 `https://api.example.com/v1`；各组未单独填写时使用 |
+| 默认 API Key | 各组未单独填写时使用的密钥 |
+| 默认 Key 环境变量 | 例如 `MEDIA_BRIDGE_API_KEY`，适合不想把密钥写进配置的场景 |
 | 输出目录 | 生成的音频/视频保存位置，留空用系统临时目录 |
-| 视觉 · 接口地址 / 模型 | 例如 `https://api.example.com/v1` + `Qwen2.5-VL-72B-Instruct` |
-| 语音 · 识别 / 合成模型 | 例如 `SenseVoice` / `CosyVoice` |
-| 视频 · 接口地址 / 模型 / 形态 | 模型如 `doubao-seedance-2.0`；形态见下文 |
+| 视觉 · 接口地址 / Key / 模型 | 视觉厂家自己的地址、密钥与模型，例如 `Qwen2.5-VL-72B-Instruct` |
+| 语音 · 接口地址 / Key / 识别 / 合成 | 语音厂家自己的地址与密钥，模型如 `SenseVoice` / `CosyVoice` |
+| 视频 · 接口地址 / Key / 模型 / 形态 | 视频厂家自己的地址与密钥，模型如 `doubao-seedance-2.0`；形态见下文 |
 | 触发条件 | 只在指定 provider/模型下暴露这些工具，支持 `*` |
 | 工具开关 | 关闭不需要的能力，工具就不会出现在模型目录里 |
 
-点「保存」后，插件通过 DSH 配置编辑器写入 profile 的 `cordis.patch.yml` 并重载自身，工具随新配置出现。「测试连接」会逐个探测填写的地址。
+**密钥按能力分组。** 视觉、语音、视频各自有 `apiKey` / `apiKeyEnv`，优先用自己组的；两组都留空才回落到默认密钥。所以「视觉用 A 厂、语音用 B 厂、视频用 C 厂，各是各的 key」可以直接在表单里填，互不影响。三组也能分别指向不同的 Base URL。
+
+点「保存」后，插件通过 DSH 配置编辑器写入 profile 的 `cordis.patch.yml` 并重载自身，工具随新配置出现。「测试连接」会逐个探测填写的地址，且每组用自己那把密钥。
 
 等价的手写配置（同一份数据，供不希望用表单的情况参考）：
 
@@ -49,15 +51,20 @@ pnpm add git+https://github.com/gqb666/dsh-media-bridge.git
   name: 'dsh-media-bridge'
   config:
     baseUrl: https://api.example.com/v1
-    apiKey: sk-your-key
+    apiKey: sk-default-key
     outputDir: D:/out
     vision:
+      baseUrl: https://vision.example.com/v1
+      apiKey: sk-vision-key
       model: Qwen2.5-VL-72B-Instruct
     speech:
+      baseUrl: https://speech.example.com/v1
+      apiKeyEnv: SPEECH_API_KEY
       model: SenseVoice
       ttsModel: CosyVoice
     video:
       baseUrl: https://api.example.com/api/v3
+      apiKeyEnv: VIDEO_API_KEY
       model: doubao-seedance-2.0
       style: volc
     trigger:
